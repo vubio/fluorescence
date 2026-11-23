@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#0b1020" />
+<meta name="description" content="A personal fluorescence spectra library: search FPbase dyes and proteins, compare excitation and emission spectra, and keep experiments saved." />
+<title>Fluorescence • Spectra workbench</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="topbar">
+    <div class="identity"><div class="logo"><svg viewBox="0 0 40 40"><path d="M5 29C13 29 10 11 19 11c8 0 6 18 16 18" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"/><circle cx="20" cy="11" r="3.5" fill="#8cf5cb"/></svg></div><div class="brand"><strong>fluorescence</strong><span>LAB SPECTRA WORKBENCH</span></div></div>
+    <div class="header-center"><span class="live-dot"></span><span id="source-status">Loading FPbase catalogue…</span></div>
+    <div class="top-actions"><button class="btn subtle" id="import-btn" title="Import local JSON library or CSV spectra">↥ <span>Import</span></button><button class="btn subtle" id="backup-btn">↓ <span>Backup</span></button><button class="btn primary" id="save-panel-btn">＋ Save panel</button></div>
+  </header>
+  <div class="workspace">
+    <aside class="sidebar">
+      <div class="aside-head"><div><div class="eyebrow">MY LIBRARY</div><h1>Fluorophores <span id="library-count">0</span></h1></div><button class="icon-btn" id="select-all-btn" title="Toggle visibility of all probes">◉</button></div>
+      <div class="search-box"><span>⌕</span><input id="search-input" autocomplete="off" spellcheck="false" placeholder="Search dye or protein…"/><kbd>/</kbd></div>
+      <div id="search-results" class="search-results" hidden></div>
+      <div class="aside-tools"><span id="active-count">0 active</span><div><button id="all-on" class="text-btn">All on</button><span class="dot-separator">·</span><button id="all-off" class="text-btn">All off</button></div></div>
+      <div id="probe-list" class="probe-list"><div class="empty-list">Your saved probes will appear here.<br/>Search for one above to get started.</div></div>
+      <div class="aside-footer"><button class="add-csv" id="csv-btn"><span class="plus-circle">＋</span><span><strong>Import custom spectrum</strong><small>CSV • measured or vendor data</small></span><span class="arrow">↗</span></button><div class="sync-note">◉ Changes are auto-saved in this browser.</div></div>
+    </aside>
+    <main class="main-panel">
+      <div class="page-heading"><div><div class="eyebrow">EXPERIMENTAL TOOLS / SPECTRA</div><h2>Spectra comparison</h2><p>Compare the excitation and emission behavior of your selected probes.</p></div><div class="stat-pills"><span><i class="stat-icon">◎</i><b id="chart-probe-count">0</b> probes</span><span><i class="stat-icon">〰</i><b id="curve-count">0</b> spectra</span></div></div>
+      <section class="chart-panel">
+        <div class="chart-toolbar"><div class="segmented" role="group" aria-label="Chart layout"><button id="layout-overlay" class="selected" aria-pressed="true">≋ Overlaid</button><button id="layout-stack" aria-pressed="false">☷ Stacked</button></div><div class="chart-actions"><div class="mode-pill"><span class="small-dot ex-dot"></span> Ex <span class="small-dot em-dot"></span> Em</div><button id="range-reset" class="toolbar-btn" title="Fit the X axis to the visible spectra">⤢ Auto range</button><button id="svg-btn" class="toolbar-btn">↓ SVG</button><button id="png-btn" class="toolbar-btn">↓ PNG</button></div></div>
+        <div class="chart-settings"><label>Wavelength <input type="number" id="x-min" min="150" max="2000" step="10" value="300" aria-label="Minimum wavelength"/> <span>to</span> <input type="number" id="x-max" min="150" max="2000" step="10" value="850" aria-label="Maximum wavelength"/> <span>nm</span></label><span class="settings-spacer"></span><label class="switch-label"><input type="checkbox" id="grid-toggle" checked/> Grid</label><label class="switch-label"><input type="checkbox" id="fill-toggle"/> Fill curves</label><label class="switch-label"><input type="checkbox" id="ruler-toggle" checked/> Shared ruler</label></div>
+        <div id="plot-content" class="plot-content"><div class="empty-chart"><div class="empty-symbol">〰</div><h3>Your spectra workspace</h3><p>Search for dyes and proteins, then activate the curves you want to compare.</p></div></div>
+        <div class="chart-foot"><span>EXCITATION <i class="dash-line"></i> dashed &nbsp;&nbsp; EMISSION <i class="solid-line"></i> solid</span><span>Normalized intensity (%) · spectral shape only</span></div>
+      </section>
+      <section class="bottom-grid">
+        <div class="secondary-card">
+          <div class="card-top"><div><div class="eyebrow">ORGANIZE</div><h3>Saved panels</h3></div><button class="text-btn" id="clear-panel-btn">Clear selection</button></div>
+          <div id="panel-list" class="panels-list"><p class="mini-empty">Save the current selection to reopen an experiment in one click.</p></div>
+        </div>
+        <div class="secondary-card">
+          <div class="card-top"><div><div class="eyebrow">SPECTRAL PROPERTIES</div><h3>Molecular brightness</h3></div><span class="info-icon" title="EC × QY is not detector intensity">ⓘ</span></div>
+          <div class="bright-explain">When available in FPbase: <strong>brightness = ε × QY</strong>. This is a molecular property, not measured flow or imaging signal.</div>
+          <div id="brightness-table" class="brightness-table"><div class="mini-empty">Add a probe to see its properties.</div></div>
+        </div>
+      </section>
+      <footer class="footer">Spectral data and metadata sourced from <a href="https://www.fpbase.org/" target="_blank" rel="noopener">FPbase</a> and attributed to its original contributors where available. <span>•</span> <a href="https://help.fpbase.org/tools/spectra-viewer" target="_blank" rel="noopener">FPbase documentation</a> <span>•</span> Local library is private to this browser unless exported.</footer>
+    </main>
+  </div>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<input id="file-input" type="file" accept=".json,.csv,.tsv,text/csv,application/json" hidden/>
+<dialog id="panel-dialog"><form method="dialog" class="dialog-inner" id="panel-form"><div class="dialog-heading"><span class="eyebrow">SAVE YOUR WORK</span><h3>Name this panel</h3><p>Stores the selection, Ex/Em switches, opacity, and chart settings.</p></div><input id="panel-name" maxlength="80" required placeholder="e.g. Huh7 ferroptosis panel"/><div class="dialog-actions"><button class="btn subtle" value="cancel">Cancel</button><button class="btn primary" id="confirm-panel" value="save">Save panel</button></div></form></dialog>
+<script type="module" src="app.js"></script>
+</body>
+</html>
