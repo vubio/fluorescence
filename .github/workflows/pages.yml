@@ -21,7 +21,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validate website JavaScript syntax
-        run: node --check app.js
+        run: |
+          node --check app.js
+          node --check optics.js
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
