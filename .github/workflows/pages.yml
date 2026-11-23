@@ -1,0 +1,45 @@
+name: Refresh FPbase and publish website
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '30 10 * * 0' # weekly on Sunday
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Refresh a curated FPbase cache
+        run: |
+          python scripts/fetch_fpbase.py || echo 'FPbase sync unavailable; retaining existing cache if present.'
+      - name: Commit refreshed cache (when changed)
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if [ -f data/fpbase-cache.json ]; then
+            git add data/fpbase-cache.json
+            if ! git diff --cached --quiet; then
+              git commit -m 'Refresh cached FPbase fluorophore spectra'
+              git push || echo 'Cache is deployed; unable to commit cache to main.'
+            fi
+          fi
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      - id: deployment
+        uses: actions/deploy-pages@v4
