@@ -82,9 +82,20 @@ async function bootstrap(){
 }
 async function graphql(query,variables){
   const url=new URL('https://www.fpbase.org/graphql/');url.searchParams.set('query',query);if(variables)url.searchParams.set('variables',JSON.stringify(variables));
-  const res=await fetch(url.toString(),{method:'GET',mode:'cors',credentials:'omit',headers:{Accept:'application/json'}});
-  if(!res.ok)throw new Error(`FPbase returned ${res.status}`);
-  const result=await res.json();if(result.errors?.length)throw new Error(result.errors[0].message);return result.data;
+  let lastError;
+  for(let attempt=0;attempt<2;attempt++){
+    try{
+      const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),15000);
+      let res;
+      try{res=await fetch(url.toString(),{method:'GET',mode:'cors',credentials:'omit',headers:{Accept:'application/json'},signal:controller.signal});}
+      finally{clearTimeout(timeout);}
+      if(!res.ok)throw new Error('FPbase HTTP '+res.status);
+      const result=await res.json();if(result.errors?.length)throw new Error(result.errors[0].message);
+      return result.data;
+    }catch(error){lastError=error;if(attempt===0)await new Promise(resolve=>setTimeout(resolve,650));}
+  }
+  if(lastError?.name==='TypeError'||lastError?.name==='AbortError')throw new Error('Live FPbase request blocked or timed out');
+  throw lastError;
 }
 async function fetchIndex(){
   const result=await graphql('{ spectra { id category subtype owner { id name slug } } }');
@@ -98,18 +109,20 @@ async function fetchIndex(){
 }
 const QUERY_SPECTRUM=`query Spectrum($id:Int!){spectrum(id:$id){id data category color subtype owner{id name slug ... on FluorophoreInterface{qy extCoeff exMax emMax}}}}`;
 async function loadCurves(p){
-  const c=cached.get(p.uid);if(c && (c.curves.EX.length||c.curves.EM.length))return {...c,visible:true,showEx:true,showEm:true,opacity:100};
+  const c=cached.get(p.uid);if(c && (c.curves.EX.length||c.curves.EM.length))return {...c,visible:true,showEx:true,showEm:true,opacity:100,pending:false};
   const ids={};for(const sp of p.spectra||[]){const sub=String(sp.subtype||'').toUpperCase();if(sub==='EX' && !ids.EX)ids.EX=sp.id;else if(sub==='EM' && !ids.EM)ids.EM=sp.id;}
-  if(!ids.EX && !ids.EM)throw new Error('No excitation or emission spectrum is listed for that probe.');
-  const next={...p,curves:{EX:[],EM:[]}};
+  if(!ids.EX && !ids.EM)throw new Error('No EX or EM spectrum is listed for that probe.');
+  const next={...p,curves:{EX:[],EM:[]},pending:false};const errors=[];
   for(const type of ['EX','EM']){
     if(!ids[type])continue;
-    const response=await graphql(QUERY_SPECTRUM,{id:Number(ids[type])});
-    const sp=parseSourceSpectrum(response?.spectrum);next.curves[type]=sp.data;
-    const own=sp.owner||{};next.exMax=next.exMax??numOrNull(own.exMax);next.emMax=next.emMax??numOrNull(own.emMax);next.qy=next.qy??numOrNull(own.qy);next.extCoeff=next.extCoeff??numOrNull(own.extCoeff);
+    try{
+      const response=await graphql(QUERY_SPECTRUM,{id:Number(ids[type])});
+      const sp=parseSourceSpectrum(response?.spectrum);next.curves[type]=sp.data;
+      const own=sp.owner||{};next.exMax=next.exMax??numOrNull(own.exMax);next.emMax=next.emMax??numOrNull(own.emMax);next.qy=next.qy??numOrNull(own.qy);next.extCoeff=next.extCoeff??numOrNull(own.extCoeff);
+    }catch(error){errors.push(type+': '+error.message);}
   }
-  next.color=colorFromWavelength(next.emMax);
-  cached.set(next.uid,next);return next;
+  if(!next.curves.EX.length&&!next.curves.EM.length)throw new Error(errors.join('; ')||'FPbase supplied no curve values');
+  next.color=colorFromWavelength(next.emMax);cached.set(next.uid,next);return next;
 }
 async function addProbe(source){
   let p=state.library.find(x=>x.uid===source.uid);
