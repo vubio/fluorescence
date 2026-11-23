@@ -182,6 +182,7 @@ function makeSVG(series,idx,stacked){const W=1040,H=stacked?222:433,left=54,righ
   for(const y of [0,.25,.5,.75,1].map(f=>f*yMax))svg+=`<text x="${left-10}" y="${py(y)+4}" text-anchor="end" fill="#8295b5" font-size="11">${state.yMode==='brightness'?nfmt(y,yMax<10?2:1):Math.round(y*100)}</text>`;
   for(const t of ticks)svg+=`<text x="${px(t)}" y="${H-14}" fill="#8fa1ba" font-size="11" text-anchor="middle">${t}</text>`;
   svg+=`<text x="${left+pw/2}" y="${H-1}" fill="#70819f" font-size="10" text-anchor="middle">Wavelength (nm)</text><g clip-path="url(#${clip})">`;
+  svg+=window.FluorescenceOptics?.svg({lo,hi,px,top,bottom:H-bottom})||"";
   for(const item of series){const {p,type,curve}=item;if(!curve?.length)continue;const path=curve.map(([x,y],i)=>`${i?'L':'M'}${px(x).toFixed(2)},${py(plotValue(p,y)).toFixed(2)}`).join(' ');const al=clamp(p.opacity/100,0,1);
     if(state.fill){svg+=`<path d="${path} L${px(curve[curve.length-1][0]).toFixed(2)},${py(0)} L${px(curve[0][0]).toFixed(2)},${py(0)}Z" fill="${p.color}" fill-opacity="${(al*.09).toFixed(2)}" />`;}
     svg+=`<path d="${path}" fill="none" stroke="${p.color}" stroke-width="${type==='EM'?3:2.5}" stroke-dasharray="${type==='EX'?'8 5':'none'}" stroke-opacity="${al}" stroke-linejoin="round" stroke-linecap="round"/>`;
@@ -225,15 +226,16 @@ function renderBrightness(){const probes=state.library.filter(p=>brightness(p)!=
 function renderSavedPanels(){const items=state.panels||[];$('panel-list').innerHTML=items.length?items.map((p,i)=>`<div class="panel-chip"><button data-action="load" data-id="${i}" title="Load ${esc(p.name)}">◫ ${esc(p.name)} <small>(${p.probes?.length||0})</small></button><button class="delete-panel" data-action="delete" data-id="${i}" title="Delete panel">×</button></div>`).join(''):'<p class="mini-empty">Save the current selection to reopen an experiment in one click.</p>';}
 $('save-panel-btn').addEventListener('click',()=>{if(!state.library.length){toast('Add at least one probe before saving a panel.');return;}$('panel-name').value='';$('panel-dialog').showModal();$('panel-name').focus();});
 $('panel-form').addEventListener('submit',e=>{if(e.submitter?.value==='cancel')return;const name=$('panel-name').value.trim();if(!name){e.preventDefault();return;}
-  const snapshot={name,at:new Date().toISOString(),layout:state.layout,range:[...state.range],manualRange:state.manualRange,yMode:state.yMode,probes:state.library.filter(p=>p.visible).map(p=>({uid:p.uid,showEx:p.showEx,showEm:p.showEm,opacity:p.opacity}))};state.panels.unshift(snapshot);save();renderSavedPanels();toast(`Panel “${name}” saved.`);});
+  const snapshot={name,opticalGuides:window.FluorescenceOptics?.getState(),at:new Date().toISOString(),layout:state.layout,range:[...state.range],manualRange:state.manualRange,yMode:state.yMode,probes:state.library.filter(p=>p.visible).map(p=>({uid:p.uid,showEx:p.showEx,showEm:p.showEm,opacity:p.opacity}))};state.panels.unshift(snapshot);save();renderSavedPanels();toast(`Panel “${name}” saved.`);});
 $('panel-list').addEventListener('click',async e=>{const btn=e.target.closest('button[data-action]');if(!btn)return;const i=Number(btn.dataset.id),panel=state.panels[i];if(!panel)return;
  if(btn.dataset.action==='delete'){if(!confirm(`Delete saved panel “${panel.name}”?`))return;state.panels.splice(i,1);save();renderSavedPanels();return;}
  state.library.forEach(p=>p.visible=false);const missing=[];for(const setting of panel.probes||[]){let p=state.library.find(x=>x.uid===setting.uid);if(!p){const entry=catalog.find(x=>x.uid===setting.uid);if(entry){try{p=parseProbe(await loadCurves(entry));state.library.push(p);}catch{missing.push(setting.uid);}}else missing.push(setting.uid);}if(p){p.visible=true;p.showEx=setting.showEx;p.showEm=setting.showEm;p.opacity=setting.opacity;}}
+ if(panel.opticalGuides)window.FluorescenceOptics?.restore(panel.opticalGuides);
  state.layout=panel.layout||'overlay';state.range=panel.range||[300,850];state.manualRange=panel.manualRange??false;state.yMode=panel.yMode||'normalized';save();render();toast(`Opened “${panel.name}”${missing.length?` (${missing.length} probe(s) unavailable)`:''}.`);
 });
 $('clear-panel-btn').addEventListener('click',()=>{state.library.forEach(p=>p.visible=false);save();render();});
 function downloadBlob(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),3000);}
-$('backup-btn').addEventListener('click',()=>downloadBlob(new Blob([JSON.stringify({version:1,exportedAt:new Date().toISOString(),...state},null,2)],{type:'application/json'}),'fluorescence-library-'+new Date().toISOString().slice(0,10)+'.json'));
+$('backup-btn').addEventListener('click',()=>downloadBlob(new Blob([JSON.stringify({version:1,exportedAt:new Date().toISOString(),...state,opticalGuides:window.FluorescenceOptics?.getState()},null,2)],{type:'application/json'}),'fluorescence-library-'+new Date().toISOString().slice(0,10)+'.json'));
 function exportSVG(){
  const plots=[...document.querySelectorAll('.plot-svg')];if(!plots.length){toast('No visible spectra to export.');return null;}
  const withHeaders=state.layout==='stacked',head=withHeaders?26:0;
@@ -253,7 +255,7 @@ $('png-btn').addEventListener('click',()=>{const raw=exportSVG();if(!raw)return;
 $('import-btn').addEventListener('click',()=>{$('file-input').value='';$('file-input').click();});
 $('csv-btn').addEventListener('click',()=>{$('file-input').value='';$('file-input').click();});
 $('file-input').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;const text=await file.text();try{
- if(file.name.toLowerCase().endsWith('.json')){const data=JSON.parse(text);if(!Array.isArray(data.library))throw new Error('This does not look like a fluorescence library backup.');if(!confirm('Import this backup? This replaces the current library and saved panels. Export a backup first if needed.'))return;state={...DEFAULT,...data,library:data.library.map(parseProbe)};save();render();toast('Library and saved panels imported.');}
+ if(file.name.toLowerCase().endsWith('.json')){const data=JSON.parse(text);if(!Array.isArray(data.library))throw new Error('This does not look like a fluorescence library backup.');if(!confirm('Import this backup? This replaces the current library and saved panels. Export a backup first if needed.'))return;state={...DEFAULT,...data,library:data.library.map(parseProbe)};if(data.opticalGuides)window.FluorescenceOptics?.restore(data.opticalGuides);save();render();toast('Library and saved panels imported.');}
  else await importCSV(file.name,text);
  }catch(error){toast('Import failed: '+error.message);}
 });
