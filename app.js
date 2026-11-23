@@ -167,6 +167,7 @@ function setAutoRange(){const curves=activeSeries().map(x=>x.curve).filter(c=>c.
  const first=Math.min(...curves.map(c=>c[0][0])),last=Math.max(...curves.map(c=>c[c.length-1][0]));state.range=[Math.max(100,Math.floor((first-12)/10)*10),Math.ceil((last+12)/10)*10];state.manualRange=false;}
 $('layout-overlay').addEventListener('click',()=>{state.layout='overlay';save();renderCharts();});
 $('layout-stack').addEventListener('click',()=>{state.layout='stacked';save();renderCharts();});
+$('y-mode').addEventListener('change',e=>{state.yMode=e.target.value;save();renderCharts();});
 $('range-reset').addEventListener('click',()=>{setAutoRange();save();renderCharts();});
 for(const k of ['x-min','x-max'])$(k).addEventListener('change',()=>{const lo=Number($('x-min').value),hi=Number($('x-max').value);if(lo>=100&&hi<=2000&&hi>lo+20){state.range=[lo,hi];state.manualRange=true;save();renderCharts();}else toast('Please enter a valid wavelength range (minimum difference: 20 nm).');});
 for(const [id,key] of [['grid-toggle','grid'],['fill-toggle','fill'],['ruler-toggle','ruler']])$(id).addEventListener('change',e=>{state[key]=e.target.checked;save();renderCharts();});
@@ -174,14 +175,14 @@ function interpolate(curve,x){if(!curve||curve.length===0)return null;if(x<curve
 const NS='http://www.w3.org/2000/svg';
 function niceTicks(min,max,count=8){const raw=(max-min)/count;const pow=Math.pow(10,Math.floor(Math.log10(raw)));const m=[1,2,2.5,5,10].find(x=>raw/pow<=x)||10;const step=pow*m;const ticks=[];for(let v=Math.ceil(min/step)*step;v<=max+1e-6;v+=step)ticks.push(+v.toFixed(5));return ticks;}
 function makeSVG(series,idx,stacked){const W=1040,H=stacked?222:433,left=54,right=20,top=stacked?14:24,bottom=37,ph=H-top-bottom,pw=W-left-right,lo=state.range[0],hi=state.range[1];
-  const px=x=>left+(x-lo)/(hi-lo)*pw, py=y=>top+(1-y)*ph, ticks=niceTicks(lo,hi,9);const clip='clip-'+idx;
-  let svg=`<svg class="plot-svg" viewBox="0 0 ${W} ${H}" data-plot="${idx}" data-w="${W}" data-h="${H}" data-l="${left}" data-r="${right}" data-t="${top}" data-b="${bottom}" role="img" aria-label="${stacked?'Single probe':'Overlaid'} fluorescence spectra chart"><defs><clipPath id="${clip}"><rect x="${left}" y="${top}" width="${pw}" height="${ph}" /></clipPath></defs>`;
-  if(state.grid){for(const y of [0,.25,.5,.75,1])svg+=`<line x1="${left}" y1="${py(y)}" x2="${W-right}" y2="${py(y)}" stroke="#2c3850" stroke-width="1" opacity=".8"/>`;for(const t of ticks)svg+=`<line x1="${px(t)}" y1="${top}" x2="${px(t)}" y2="${H-bottom}" stroke="#2a344a" stroke-width="1" opacity=".7"/>`;}
+  const yMax=plotYMax(),px=x=>left+(x-lo)/(hi-lo)*pw, py=y=>top+(1-y/yMax)*ph, ticks=niceTicks(lo,hi,9);const clip='clip-'+idx;
+  let svg=`<svg class="plot-svg" viewBox="0 0 ${W} ${H}" data-plot="${idx}" data-w="${W}" data-h="${H}" data-l="${left}" data-r="${right}" data-t="${top}" data-b="${bottom}" data-ymax="${yMax}" role="img" aria-label="${stacked?'Single probe':'Overlaid'} fluorescence spectra chart"><defs><clipPath id="${clip}"><rect x="${left}" y="${top}" width="${pw}" height="${ph}" /></clipPath></defs>`;
+  if(state.grid){for(const y of [0,.25,.5,.75,1].map(f=>f*yMax))svg+=`<line x1="${left}" y1="${py(y)}" x2="${W-right}" y2="${py(y)}" stroke="#2c3850" stroke-width="1" opacity=".8"/>`;for(const t of ticks)svg+=`<line x1="${px(t)}" y1="${top}" x2="${px(t)}" y2="${H-bottom}" stroke="#2a344a" stroke-width="1" opacity=".7"/>`;}
   svg+=`<line x1="${left}" y1="${H-bottom}" x2="${W-right}" y2="${H-bottom}" stroke="#71829e" stroke-width="1" opacity=".65"/>`;
-  for(const y of [0,.25,.5,.75,1])svg+=`<text x="${left-10}" y="${py(y)+4}" text-anchor="end" fill="#8295b5" font-size="11">${Math.round(y*100)}</text>`;
+  for(const y of [0,.25,.5,.75,1].map(f=>f*yMax))svg+=`<text x="${left-10}" y="${py(y)+4}" text-anchor="end" fill="#8295b5" font-size="11">${state.yMode==='brightness'?nfmt(y,yMax<10?2:1):Math.round(y*100)}</text>`;
   for(const t of ticks)svg+=`<text x="${px(t)}" y="${H-14}" fill="#8fa1ba" font-size="11" text-anchor="middle">${t}</text>`;
   svg+=`<text x="${left+pw/2}" y="${H-1}" fill="#70819f" font-size="10" text-anchor="middle">Wavelength (nm)</text><g clip-path="url(#${clip})">`;
-  for(const item of series){const {p,type,curve}=item;if(!curve?.length)continue;const path=curve.map(([x,y],i)=>`${i?'L':'M'}${px(x).toFixed(2)},${py(y).toFixed(2)}`).join(' ');const al=clamp(p.opacity/100,0,1);
+  for(const item of series){const {p,type,curve}=item;if(!curve?.length)continue;const path=curve.map(([x,y],i)=>`${i?'L':'M'}${px(x).toFixed(2)},${py(plotValue(p,y)).toFixed(2)}`).join(' ');const al=clamp(p.opacity/100,0,1);
     if(state.fill){svg+=`<path d="${path} L${px(curve[curve.length-1][0]).toFixed(2)},${py(0)} L${px(curve[0][0]).toFixed(2)},${py(0)}Z" fill="${p.color}" fill-opacity="${(al*.09).toFixed(2)}" />`;}
     svg+=`<path d="${path}" fill="none" stroke="${p.color}" stroke-width="${type==='EM'?3:2.5}" stroke-dasharray="${type==='EX'?'8 5':'none'}" stroke-opacity="${al}" stroke-linejoin="round" stroke-linecap="round"/>`;
   }
@@ -208,10 +209,10 @@ function pointerMove(e){if(!state.ruler)return;const svg=e.currentTarget,rect=sv
   for(const chart of document.querySelectorAll('.plot-svg')){
     const cw=Number(chart.dataset.w),l=Number(chart.dataset.l),r=Number(chart.dataset.r),top=Number(chart.dataset.t),h=Number(chart.dataset.h),b=Number(chart.dataset.b),xp=l+frac*(cw-l-r);
     const line=chart.querySelector('.hover-line');line.setAttribute('x1',xp);line.setAttribute('x2',xp);line.setAttribute('opacity','0.63');
-    for(const marker of chart.querySelectorAll('.hover-marker')){const p=state.library.find(p=>p.uid===marker.dataset.uid);const y=p&&interpolate(p.curves[marker.dataset.type],x);marker.setAttribute('cx',xp);marker.setAttribute('cy',top+(1-(y??0))*(h-top-b));marker.setAttribute('opacity',y==null?'0':String(p.opacity/100));}
+    for(const marker of chart.querySelectorAll('.hover-marker')){const p=state.library.find(p=>p.uid===marker.dataset.uid);const y=p&&plotValue(p,interpolate(p.curves[marker.dataset.type],x));const maxY=Number(chart.dataset.ymax)||1;marker.setAttribute('cx',xp);marker.setAttribute('cy',top+(1-(y??0)/maxY)*(h-top-b));marker.setAttribute('opacity',y==null?'0':String(p.opacity/100));}
   }
   const read=$('hover-readout');if(!read)return;read.classList.remove('hide');let rows=activeSeries().map(({p,type,curve})=>({p,type,val:interpolate(curve,x)}));
-  read.innerHTML=`<div class="readout-title">${nfmt(x,1)} nm</div>${rows.slice(0,13).map(o=>`<div class="readout-line"><span><i class="tiny" style="background:${o.p.color}"></i>${esc(o.p.name)} ${o.type}</span><b>${o.val==null?'—':nfmt(o.val*100,1)+'%'}</b></div>`).join('')}${rows.length>13?`<div class="readout-line">+${rows.length-13} more spectra</div>`:''}`;
+  read.innerHTML=`<div class="readout-title">${nfmt(x,1)} nm</div>${rows.slice(0,13).map(o=>`<div class="readout-line"><span><i class="tiny" style="background:${o.p.color}"></i>${esc(o.p.name)} ${o.type}</span><b>${o.val==null?'—':(state.yMode==='brightness'?nfmt(plotValue(o.p,o.val),2):nfmt(o.val*100,1)+'%')}</b></div>`).join('')}${rows.length>13?`<div class="readout-line">+${rows.length-13} more spectra</div>`:''}`;
 }
 function clearRuler(){activeHover=null;document.querySelectorAll('.hover-line,.hover-marker').forEach(x=>x.setAttribute('opacity','0'));$('hover-readout')?.classList.add('hide');}
 function renderBrightness(){const probes=state.library.filter(p=>brightness(p)!=null);if(!probes.length){$('brightness-table').innerHTML='<div class="mini-empty">No EC and QY values are available for the current saved probes.</div>';return;}
