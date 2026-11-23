@@ -38,19 +38,20 @@ function renderProbes(){
   const filter=$('search-input').value.toLowerCase().trim();
   const list=state.library.filter(p=>!filter||p.name.toLowerCase().includes(filter));
   $('probe-list').innerHTML=list.length?list.map(p=>`
-   <div class="probe-row ${enabled(p)?'active':'inactive'}" data-uid="${esc(p.uid)}">
+   <div class="probe-row ${enabled(p)?'active':'inactive'} ${p.pending?'pending':''}" data-uid="${esc(p.uid)}">
     <div class="probe-main"><input class="check-box" type="checkbox" data-action="visible" aria-label="Display ${esc(p.name)}" ${p.visible?'checked':''}/>
       <span class="probe-color" style="background:${esc(p.color)};color:${esc(p.color)}"></span>
-      <div class="probe-meta"><div class="probe-name"><span title="${esc(p.name)}">${esc(p.name)}</span></div><div class="probe-waves">${p.exMax!=null?'Ex '+nfmt(p.exMax)+' nm':'Ex n/a'} &nbsp;·&nbsp; ${p.emMax!=null?'Em '+nfmt(p.emMax)+' nm':'Em n/a'}</div></div>
+      <div class="probe-meta"><div class="probe-name"><span title="${esc(p.name)}">${esc(p.name)}</span></div><div class="probe-waves">${p.pending?"Awaiting cached spectra · ":""}${p.exMax!=null?'Ex '+nfmt(p.exMax)+' nm':'Ex n/a'} &nbsp;·&nbsp; ${p.emMax!=null?'Em '+nfmt(p.emMax)+' nm':'Em n/a'}</div></div>
       ${p.source==='FPbase'&&p.spectra?.length?`<a class="probe-link" title="Open original FPbase spectra" target="_blank" rel="noopener noreferrer" href="https://www.fpbase.org/spectra/?s=${encodeURIComponent(p.spectra.filter(s=>['EX','EM'].includes(s.subtype)).map(s=>s.id).join(','))}">↗</a>`:''}<button class="remove-probe" data-action="remove" title="Remove from library" aria-label="Remove ${esc(p.name)}">×</button>
     </div>
-    <div class="probe-controls"><button class="curve-switch ${p.showEx?'on ex':''}" data-action="ex" aria-pressed="${p.showEx}">EX</button><button class="curve-switch ${p.showEm?'on em':''}" data-action="em" aria-pressed="${p.showEm}">EM</button><label for="op-${esc(p.uid)}">Opacity</label><input type="range" data-action="opacity" id="op-${esc(p.uid)}" value="${p.opacity}" min="0" max="100" step="5"/><span class="percent">${p.opacity}%</span></div>
+    <div class="probe-controls"><button class="curve-switch ${p.showEx?'on ex':''}" data-action="ex" aria-pressed="${p.showEx}">EX</button><button class="curve-switch ${p.showEm?'on em':''}" data-action="em" aria-pressed="${p.showEm}">EM</button><label for="op-${esc(p.uid)}">Opacity</label><input type="range" data-action="opacity" id="op-${esc(p.uid)}" value="${p.opacity}" min="0" max="100" step="5"/><span class="percent">${p.opacity}%</span>${p.pending ? '<button class="retry-probe" data-action="retry" title="Retry loading spectra">↻</button>' : ''}</div>
    </div>`).join('') : `<div class="empty-list">${state.library.length?'No library items match this search.':'Your saved probes will appear here.<br/>Search for one above to get started.'}</div>`;
 }
 $('probe-list').addEventListener('click',(e)=>{
   const row=e.target.closest('[data-uid]');if(!row)return;
   const p=state.library.find(p=>p.uid===row.dataset.uid);if(!p)return;
   const act=e.target.dataset.action;
+  if(act==='retry'){retryProbe(p);return;}
   if(act==='ex') p.showEx=!p.showEx;
   else if(act==='em') p.showEm=!p.showEm;
   else if(act==='remove') {if(!confirm(`Remove ${p.name} from this browser's library? Saved panel presets keep its name, but not the removed curve data.`))return;state.library=state.library.filter(x=>x.uid!==p.uid);}
@@ -77,7 +78,7 @@ async function bootstrap(){
     $('source-status').textContent='Live FPbase search · local cache not built';
     try{await fetchIndex();sourceReady=true;}catch{ $('source-status').textContent='Offline · import CSV or run FPbase sync';}
   }
-  state.library=state.library.map(parseProbe);render();
+  state.library=state.library.map(raw=>{const original=parseProbe(raw),fresh=cached.get(original.uid);if(fresh && !original.curves.EX.length && !original.curves.EM.length){return {...parseProbe(fresh),visible:original.visible,showEx:original.showEx,showEm:original.showEm,opacity:original.opacity,pending:false};}return original;});render();save();
 }
 async function graphql(query,variables){
   const url=new URL('https://www.fpbase.org/graphql/');url.searchParams.set('query',query);if(variables)url.searchParams.set('variables',JSON.stringify(variables));
