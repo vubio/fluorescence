@@ -102,3 +102,25 @@ CellTrace Blue
 SYTO Deep Red Nucleic Acid Stain
 HCS LipidTOX Deep Red
 CellMask Deep Red plasma membrane stain
+
+# Additional exact FPbase names: reliable server-side cache rather than browser CORS
+CellTracker™ Orange CMRA Dye
+CellTracker™ Green CMFDA Dye
+CellTrace Yellow
+CellTrace calcein violet
+CellTrace calcein red-orange
+MitoTracker Orange
+MitoTracker Red
+MitoTracker Red FM
+DyLight 405
+DyLight 488
+DyLight 521-LS
+DyLight 549
+DyLight 550
+DyLight 554
+DyLight 633
+DyLight 649
+DyLight 680
+DyLight 755
+SYTOX AADvanced dead cell stain
+SYTOX Red
