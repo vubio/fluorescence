@@ -8,6 +8,7 @@
 <title>Fluorescence • Spectra workbench</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 <link rel="stylesheet" href="styles.css?v=2" />
+<link rel="stylesheet" href="optics.css?v=3" />
 </head>
 <body>
 <div class="app-shell">
@@ -55,6 +56,7 @@
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <input id="file-input" type="file" accept=".json,.csv,.tsv,text/csv,application/json" hidden/>
 <dialog id="panel-dialog"><form method="dialog" class="dialog-inner" id="panel-form"><div class="dialog-heading"><span class="eyebrow">SAVE YOUR WORK</span><h3>Name this panel</h3><p>Stores the selection, Ex/Em switches, opacity, and chart settings.</p></div><input id="panel-name" maxlength="80" required placeholder="e.g. Huh7 ferroptosis panel"/><div class="dialog-actions"><button class="btn subtle" value="cancel">Cancel</button><button class="btn primary" id="confirm-panel" value="save">Save panel</button></div></form></dialog>
-<script type="module" src="app.js?v=2"></script>
+<script defer src="optics.js?v=3"></script>
+<script type="module" src="app.js?v=3"></script>
 </body>
 </html>
