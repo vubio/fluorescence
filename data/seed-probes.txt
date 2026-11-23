@@ -91,3 +91,14 @@ APC/Cy7
 PE (R-PE / R-phycoerythrin)
 GFP (S65T)
 BODIPY 581_591
+
+# Common cell trackers and viability dyes, exact names checked against FPbase catalogue
+CellTracker Deep Red
+CellTracker Green CMFDA
+CellTracker Red CMTPX
+CellTracker Violet BMQC
+CellTrace Far Red
+CellTrace Blue
+SYTO Deep Red Nucleic Acid Stain
+HCS LipidTOX Deep Red
+CellMask Deep Red plasma membrane stain
