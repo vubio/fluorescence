@@ -81,3 +81,13 @@ mCitrine
 mCardinal
 miRFP670
 miRFP720
+
+# Additional exact FPbase catalogue names for common lab shorthand
+Fluorescein (FITC)
+CFSE (fluorescein, CFDA, SE)
+CellTrace Violet stain
+APC (allophycocyanin)
+APC/Cy7
+PE (R-PE / R-phycoerythrin)
+GFP (S65T)
+BODIPY 581_591
