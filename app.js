@@ -1,11 +1,12 @@
 /* Fluorescence — a zero-dependency, local-first FPbase spectra viewer. */
 const $ = (id) => document.getElementById(id);
 const STORAGE_KEY = 'vubio.fluorescence.v1';
-const DEFAULT = {library:[],panels:[],layout:'overlay',range:[300,850],manualRange:false,grid:true,fill:false,ruler:true};
+const DEFAULT = {library:[],panels:[],layout:'overlay',range:[300,850],manualRange:false,grid:true,fill:false,ruler:true,yMode:'normalized'};
 let state, hasSavedState=false;
 try { const saved=localStorage.getItem(STORAGE_KEY);hasSavedState=!!saved;state = {...DEFAULT,...JSON.parse(saved || '{}')}; } catch {state = {...DEFAULT};}
 if (!Array.isArray(state.library)) state.library=[];
 if (!Array.isArray(state.panels)) state.panels=[];
+if(!['normalized','brightness'].includes(state.yMode))state.yMode='normalized';
 let catalog=[], cached = new Map(), toastTimer, saveTimer, activeHover=null, sourceReady=false;
 const esc = (s) => String(s??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const labelId = (str) => String(str).trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu,'-').replace(/^-|-$/g,'');
@@ -19,14 +20,17 @@ function parseProbe(raw){
   const o=raw||{}, cs=o.curves||{};
   const curves={EX:cleanCurve(cs.EX||cs.ex||[]),EM:cleanCurve(cs.EM||cs.em||[])};
   const owner=o.owner||{};
-  return {uid:String(o.uid||labelId(o.name||'probe')),name:String(o.name||'Unnamed probe'),category:o.category||'D',source:o.source||'FPbase',sourceUrl:o.sourceUrl||'',spectra:Array.isArray(o.spectra)?o.spectra:[],curves,exMax:numOrNull(o.exMax??owner.exMax),emMax:numOrNull(o.emMax??owner.emMax),qy:numOrNull(o.qy??owner.qy),extCoeff:numOrNull(o.extCoeff??owner.extCoeff),color:o.color||colorFromWavelength(o.emMax??owner.emMax),visible:o.visible!==false,showEx:o.showEx!==false,showEm:o.showEm!==false,opacity:clamp(Number(o.opacity??100),0,100)};
+  return {uid:String(o.uid||labelId(o.name||'probe')),name:String(o.name||'Unnamed probe'),category:o.category||'D',source:o.source||'FPbase',sourceUrl:o.sourceUrl||'',spectra:Array.isArray(o.spectra)?o.spectra:[],curves,exMax:numOrNull(o.exMax??owner.exMax),emMax:numOrNull(o.emMax??owner.emMax),qy:numOrNull(o.qy??owner.qy),extCoeff:numOrNull(o.extCoeff??owner.extCoeff),color:o.color||colorFromWavelength(o.emMax??owner.emMax),visible:o.visible!==false,showEx:o.showEx!==false,showEm:o.showEm!==false,pending:Boolean(o.pending),opacity:clamp(Number(o.opacity??100),0,100)};
 }
 function numOrNull(n){return n===null||n===undefined||n===''?null:(Number.isFinite(Number(n))?Number(n):null);}
 function colorFromWavelength(n){const p=Number(n||550);if(p<420)return '#ad8cf9';if(p<480)return '#689bfa';if(p<520)return '#42c7ca';if(p<560)return '#57d99f';if(p<590)return '#d2cb65';if(p<625)return '#ffa362';if(p<670)return '#f37091';return '#d17afa';}
 function brightness(p){return p.qy!=null && p.extCoeff!=null ? p.qy*p.extCoeff : null;}
 function enabled(p){return p.visible && ((p.showEx&&p.curves.EX?.length>1)||(p.showEm&&p.curves.EM?.length>1));}
 function activeProbes(){return state.library.filter(enabled);}
-function activeSeries(){return activeProbes().flatMap(p=>[['EX',p.showEx],['EM',p.showEm]].filter(([t,on])=>on && p.curves[t]?.length>1).map(([type])=>({p,type,curve:p.curves[type]})));}
+function seriesScale(p){return state.yMode==='brightness'? (brightness(p)==null?null:brightness(p)/1000):1;}
+function plotValue(p,v){const k=seriesScale(p);return k==null||v==null?null:v*k;}
+function activeSeries(){return activeProbes().filter(p=>seriesScale(p)!=null).flatMap(p=>[['EX',p.showEx],['EM',p.showEm]].filter(([t,on])=>on && p.curves[t]?.length>1).map(([type])=>({p,type,curve:p.curves[type]})));}
+function plotYMax(){if(state.yMode==='normalized')return 1;const v=Math.max(0,...activeSeries().map(({p})=>seriesScale(p)));if(!v)return 1;const mag=Math.pow(10,Math.floor(Math.log10(v)));return Math.ceil((v/mag)*2)/2*mag;}
 function render(){renderProbes();renderCharts();renderSavedPanels();renderBrightness();}
 function renderProbes(){
   $('library-count').textContent=state.library.length;
@@ -134,6 +138,7 @@ $('search-results').addEventListener('click',e=>{const b=e.target.closest('butto
 $('all-on').addEventListener('click',()=>{state.library.forEach(p=>p.visible=true);save();render();});
 $('all-off').addEventListener('click',()=>{state.library.forEach(p=>p.visible=false);save();render();});
 $('select-all-btn').addEventListener('click',()=>{const next=!state.library.every(p=>p.visible);state.library.forEach(p=>p.visible=next);save();render();});
+for(const [id,type,value] of [['ex-all','showEx',true],['ex-none','showEx',false],['em-all','showEm',true],['em-none','showEm',false]]){$(id).addEventListener('click',()=>{state.library.forEach(p=>{p[type]=value;});save();render();});}
 function setAutoRange(){const curves=activeSeries().map(x=>x.curve).filter(c=>c.length);if(!curves.length){state.range=[300,850];state.manualRange=false;return;}
  const first=Math.min(...curves.map(c=>c[0][0])),last=Math.max(...curves.map(c=>c[c.length-1][0]));state.range=[Math.max(100,Math.floor((first-12)/10)*10),Math.ceil((last+12)/10)*10];state.manualRange=false;}
 $('layout-overlay').addEventListener('click',()=>{state.layout='overlay';save();renderCharts();});
