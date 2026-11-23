@@ -1,0 +1,19 @@
+
+.optics-toolbar{border-bottom:1px solid #283751;background:#131e31;padding:10px 19px 8px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;color:#9caecb;font-size:11px}
+.optics-title{font-size:11px;font-weight:800;color:#d8e4f7;margin-right:7px}
+.optics-toolbar label{display:flex;align-items:center;gap:6px}
+.optics-toolbar select,.optic-custom-form input{background:#1d2b45;border:1px solid #3b4e6d;border-radius:6px;padding:6px 8px;color:#dce9fa;font:inherit;max-width:155px}
+.optic-clear,.optic-custom-form button{background:#24314c;color:#bcd0e9;border:1px solid #435676;border-radius:6px;font:inherit;padding:6px 9px;cursor:pointer}
+.optic-clear:hover,.optic-chip:hover,.optic-custom-form button:hover{background:#324362}
+.optic-selected{display:flex;align-items:center;flex-wrap:wrap;gap:5px;width:100%;min-height:23px}
+.optic-chip{display:flex;align-items:center;gap:6px;color:#dfebfc;border:1px solid #39506b;padding:4px 7px;background:#203149;border-radius:6px;font-size:10px;cursor:pointer}
+.optic-chip-dot{font-size:13px;font-weight:800}
+.laser-chip{border-color:#987c43}.laser-chip .optic-chip-dot{color:#f6ce73}
+.filter-chip{border-color:#3b8b9c}.filter-chip .optic-chip-dot{color:#6fddf0}
+.optic-chip b{font-size:13px;color:#9baec9;font-weight:500}
+.optics-empty{color:#788ca8;font-size:10px}
+.optic-caption{margin:0;width:100%;color:#7d94ae;font-size:10px;line-height:1.35}
+.optic-custom{position:relative}.optic-custom summary{cursor:pointer;list-style:none;border:1px solid #435676;background:#24314c;border-radius:6px;padding:6px 9px;color:#bcd0e9}.optic-custom summary::after{content:' ▾'}
+.optic-custom-form{display:flex;flex-wrap:wrap;align-items:center;gap:7px;position:absolute;top:calc(100% + 5px);right:0;width:430px;max-width:calc(100vw - 30px);background:#1b2941;border:1px solid #4c6384;box-shadow:0 14px 35px #060b1bc9;padding:12px;border-radius:9px;z-index:16}
+.optic-custom-form input{max-width:72px}
+@media(max-width:750px){.optics-toolbar{padding:8px 12px;gap:7px}.optics-toolbar select{max-width:135px}.optic-custom-form{right:-65px}}
