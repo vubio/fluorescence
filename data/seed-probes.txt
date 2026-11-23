@@ -1,0 +1,83 @@
+# Name matches are case-insensitive against FPbase. Unmatched names are skipped.
+DAPI
+Hoechst 33342
+Hoechst 33258
+Propidium Iodide
+7-AAD
+DRAQ7
+DRAQ5
+SYTOX Deep Red
+SYTOX Green
+SYTOX Blue
+SYTOX Orange
+Calcein AM
+Calcein
+Fluorescein
+FITC
+PE
+APC
+PerCP
+PerCP-Cy5.5
+PE-Cy7
+APC-Cy7
+BODIPY 581/591 C11
+BODIPY C11
+BODIPY 493/503
+BODIPY FL
+Nile Red
+MitoTracker Green FM
+MitoTracker Deep Red FM
+MitoSOX Red
+CellTrace Violet
+CellTrace CFSE
+CFSE
+DiI
+DiO
+DiD
+Cy3
+Cy5
+Cy7
+Alexa Fluor 350
+Alexa Fluor 405
+Alexa Fluor 488
+Alexa Fluor 514
+Alexa Fluor 532
+Alexa Fluor 546
+Alexa Fluor 555
+Alexa Fluor 568
+Alexa Fluor 594
+Alexa Fluor 633
+Alexa Fluor 647
+Alexa Fluor 660
+Alexa Fluor 680
+Alexa Fluor 700
+Alexa Fluor 750
+ATTO 488
+ATTO 550
+ATTO 565
+ATTO 590
+ATTO 647N
+ATTO 700
+EGFP
+GFP
+mCherry
+mNeonGreen
+mTagBFP2
+mTurquoise2
+mCerulean3
+mScarlet
+mScarlet-I
+mKate2
+mRuby3
+mApple
+mOrange2
+mKO2
+mVenus
+Venus
+EYFP
+ECFP
+mClover3
+mCitrine
+mCardinal
+miRFP670
+miRFP720
