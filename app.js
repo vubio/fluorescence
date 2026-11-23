@@ -124,15 +124,25 @@ async function loadCurves(p){
   if(!next.curves.EX.length&&!next.curves.EM.length)throw new Error(errors.join('; ')||'FPbase supplied no curve values');
   next.color=colorFromWavelength(next.emMax);cached.set(next.uid,next);return next;
 }
+async function retryProbe(probe){
+  $('source-status').textContent='Retrying '+probe.name+'…';
+  try{
+    const newer=parseProbe(await loadCurves(probe));const i=state.library.findIndex(p=>p.uid===probe.uid);
+    if(i>=0)state.library[i]={...newer,visible:probe.visible,showEx:probe.showEx,showEm:probe.showEm,opacity:probe.opacity,pending:false};
+    if(!state.manualRange)setAutoRange();save();render();toast(probe.name+' spectra loaded.');
+  }catch(e){toast(probe.name+' is not cached yet. '+e.message);}
+  finally{$('source-status').textContent='FPbase catalogue · '+catalog.length.toLocaleString()+' entries';}
+}
 async function addProbe(source){
   let p=state.library.find(x=>x.uid===source.uid);
-  if(p){p.visible=true;render();save();toast(`${p.name} is already in your library.`);return;}
-  $('source-status').textContent=`Loading ${source.name}…`;
+  if(p){p.visible=true;save();render();if(p.pending)retryProbe(p);else toast(p.name+' is already in your library.');return;}
+  $('source-status').textContent='Loading '+source.name+'…';
   try{
-    p=await loadCurves(source);if(!p.curves.EX.length&&!p.curves.EM.length)throw new Error('No curve values were returned.');
-    state.library.unshift(parseProbe(p));save();render();$('search-input').value='';hideSuggestions();if(!state.manualRange){setAutoRange();renderCharts();}toast(`${p.name} saved to your probe library.`);
-  }catch(e){toast(`Could not fetch ${source.name}: ${e.message}. Try the CSV importer or build the GitHub cache.`);}
-  finally{$('source-status').textContent=sourceReady?`FPbase catalogue · ${catalog.length.toLocaleString()} entries`:'Live FPbase search unavailable';}
+    p=await loadCurves(source);state.library.unshift(parseProbe(p));save();render();$('search-input').value='';hideSuggestions();if(!state.manualRange){setAutoRange();renderCharts();}toast(p.name+' saved to your library.');
+  }catch(e){
+    p=parseProbe({...source,pending:true,curves:{EX:[],EM:[]}});state.library.unshift(p);save();render();$('search-input').value='';hideSuggestions();
+    toast(source.name+' added to library, but spectra are not cached yet. Refresh the FPbase cache or use CSV.');
+  }finally{$('source-status').textContent=sourceReady?('FPbase catalogue · '+catalog.length.toLocaleString()+' entries'):'Live FPbase search unavailable';}
 }
 const srch=$('search-input');let searchTimer;
 srch.addEventListener('input',()=>{renderProbes();clearTimeout(searchTimer);searchTimer=setTimeout(()=>showSuggestions(srch.value),170);});
