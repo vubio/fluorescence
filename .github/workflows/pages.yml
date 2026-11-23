@@ -20,6 +20,8 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - name: Validate website JavaScript syntax
+        run: node --check app.js
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
