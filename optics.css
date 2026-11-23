@@ -17,3 +17,9 @@
 .optic-custom-form{display:flex;flex-wrap:wrap;align-items:center;gap:7px;position:absolute;top:calc(100% + 5px);right:0;width:430px;max-width:calc(100vw - 30px);background:#1b2941;border:1px solid #4c6384;box-shadow:0 14px 35px #060b1bc9;padding:12px;border-radius:9px;z-index:16}
 .optic-custom-form input{max-width:72px}
 @media(max-width:750px){.optics-toolbar{padding:8px 12px;gap:7px}.optics-toolbar select{max-width:135px}.optic-custom-form{right:-65px}}
+
+/* Informative laser/filter presets with familiar probe and channel names. */
+.optics-toolbar select{max-width:min(375px,85vw);width:min(330px,85vw)}
+.optic-chip strong{font-weight:720;color:#f0f5ff;white-space:nowrap}
+.optic-chip-name{max-width:174px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.78}
+@media(max-width:750px){.optics-toolbar select{max-width:calc(100vw - 160px);width:min(295px,calc(100vw - 160px))}.optic-chip-name{max-width:120px}}

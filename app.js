@@ -167,7 +167,7 @@ function setAutoRange(){const curves=activeSeries().map(x=>x.curve).filter(c=>c.
  const first=Math.min(...curves.map(c=>c[0][0])),last=Math.max(...curves.map(c=>c[c.length-1][0]));state.range=[Math.max(100,Math.floor((first-12)/10)*10),Math.ceil((last+12)/10)*10];state.manualRange=false;}
 $('layout-overlay').addEventListener('click',()=>{state.layout='overlay';save();renderCharts();});
 $('layout-stack').addEventListener('click',()=>{state.layout='stacked';save();renderCharts();});
-$('y-mode').addEventListener('change',e=>{state.yMode=e.target.value;save();renderCharts();});
+for(const [id,mode] of [['y-normalized','normalized'],['y-brightness','brightness']])$(id).addEventListener('click',()=>{if(state.yMode===mode)return;state.yMode=mode;save();renderCharts();});
 $('range-reset').addEventListener('click',()=>{setAutoRange();save();renderCharts();});
 for(const k of ['x-min','x-max'])$(k).addEventListener('change',()=>{const lo=Number($('x-min').value),hi=Number($('x-max').value);if(lo>=100&&hi<=2000&&hi>lo+20){state.range=[lo,hi];state.manualRange=true;save();renderCharts();}else toast('Please enter a valid wavelength range (minimum difference: 20 nm).');});
 for(const [id,key] of [['grid-toggle','grid'],['fill-toggle','fill'],['ruler-toggle','ruler']])$(id).addEventListener('change',e=>{state[key]=e.target.checked;save();renderCharts();});
@@ -198,7 +198,7 @@ function renderCharts(){
   $('layout-overlay').setAttribute('aria-pressed',String(state.layout!=='stacked'));$('layout-stack').setAttribute('aria-pressed',String(state.layout==='stacked'));
   $('x-min').value=state.range[0];$('x-max').value=state.range[1];
   for(const [id,key] of [['grid-toggle','grid'],['fill-toggle','fill'],['ruler-toggle','ruler']])$(id).checked=state[key];
-  $('y-mode').value=state.yMode;
+  for(const [id,mode] of [['y-normalized','normalized'],['y-brightness','brightness']]){$(id).classList.toggle('selected',state.yMode===mode);$(id).setAttribute('aria-pressed',String(state.yMode===mode));}
   $('y-axis-note').textContent=state.yMode==='brightness'?'Brightness-weighted shape (ε × QY / 1000, relative proxy · not detector counts)':'Normalized intensity (%) · spectral shape only';
   const omitted=state.yMode==='brightness'?activeProbes().filter(p=>seriesScale(p)==null).map(p=>p.name):[];
   $('y-mode-explanation').textContent=omitted.length?('Omitted without EC and QY: '+omitted.join(', ')+'. Switch to normalized to see these spectra.'):(state.yMode==='brightness'?'Shared Y-axis compares molecular brightness-weighted curve shapes, NOT measured fluorescence, laser/filter efficiency, or calibrated raw counts.':'');

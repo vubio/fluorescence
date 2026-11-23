@@ -32,3 +32,10 @@
 .y-mode-explanation{font-size:11px;color:#d1b981;padding:0 20px;line-height:1.5}
 .y-mode-explanation:not(:empty){padding-top:12px}
 @media(max-width:750px){.bulk-curves{padding:7px 15px}.y-mode-label select{max-width:220px}}
+
+/* Single-click Y-axis scaling choices (replaces the old select menu). */
+.y-mode-label{display:flex;align-items:center;gap:7px;white-space:nowrap;color:#a9bdd9}
+.y-mode-buttons{padding:3px;gap:2px}
+.y-mode-buttons button{padding:6px 9px;font-size:11px;white-space:nowrap;cursor:pointer}
+.y-mode-buttons button.selected{background:#51498e;color:#fff}
+@media(max-width:750px){.y-mode-label{width:100%;flex-wrap:wrap}.y-mode-buttons button{font-size:10px;padding:6px 7px}}
