@@ -43,5 +43,7 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
+      - name: Allow uploaded Pages artifact to become discoverable
+        run: sleep 25
       - id: deployment
         uses: actions/deploy-pages@v4
